@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -7,8 +8,8 @@ load_dotenv()
 
 class Settings:
     PROJECT_NAME: str = "Modular RAG Agent"
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")
+    OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    GOOGLE_API_KEY: Optional[str] = os.getenv("GOOGLE_API_KEY")
     USER_AGENT: str = os.getenv("USER_AGENT", "Mozilla/5.0")
     CHROMA_DB_DIR: str = os.getenv("CHROMA_DB_DIR", "./chroma_db")
     COLLECTION_NAME: str = os.getenv("COLLECTION_NAME", "modular_rag")

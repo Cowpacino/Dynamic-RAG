@@ -33,7 +33,7 @@ async def chat(request: ChatRequest):
     Endpoint to interact with the AI agent.
     The agent can retrieve info from indexed PDFs/Webpages or search the live internet.
     """
-    response = await agent_service.chat(request.message, request.thread_id)
+    response = await agent_service.chat(request.message, request.thread_id or "default")
     return ChatResponse(response=response)
 
 
@@ -48,7 +48,7 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
 
     files_to_process = []
     for file in files:
-        if not file.filename.lower().endswith(".pdf"):
+        if not file.filename or not file.filename.lower().endswith(".pdf"):
             continue
         content = await file.read()
         files_to_process.append({"content": content, "filename": file.filename})
@@ -77,6 +77,7 @@ async def index_url(request: IndexUrlRequest):
             return IndexResponse(
                 status="error",
                 message=f"No content could be extracted from {request.url}",
+                summary=None,
             )
 
         vector_store_manager.add_documents(docs)

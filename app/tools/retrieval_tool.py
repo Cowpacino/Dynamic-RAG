@@ -1,6 +1,3 @@
-from typing import List, Tuple
-
-from langchain_core.documents import Document
 from langchain_core.tools import tool
 
 from app.core.vector_store import vector_store_manager

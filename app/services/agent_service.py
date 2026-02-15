@@ -1,6 +1,8 @@
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
+from pydantic import SecretStr
 
 from app.core.config import settings
 from app.tools.browse_tool import browse_webpage
@@ -18,7 +20,9 @@ class AgentService:
         # Initialize the LLM
         self.llm = ChatOpenAI(
             model=settings.MODEL_NAME,
-            api_key=settings.OPENAI_API_KEY,
+            api_key=SecretStr(settings.OPENAI_API_KEY)
+            if settings.OPENAI_API_KEY
+            else None,
             temperature=0,
         )
 
@@ -47,7 +51,7 @@ class AgentService:
         """
         Sends a message to the agent and returns the response.
         """
-        config = {"configurable": {"thread_id": thread_id}}
+        config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
         input_state = {"messages": [HumanMessage(content=message)]}
 
         try:

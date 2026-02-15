@@ -1,7 +1,6 @@
-import os
-from typing import List, Optional
+from typing import List
 
-import bs4
+from bs4.filter import SoupStrainer
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.documents import Document
@@ -22,7 +21,7 @@ class SearchService:
             chunk_size=1000, chunk_overlap=100
         )
         # Strainer to filter common clutter from webpages
-        self.bs4_strainer = bs4.SoupStrainer(
+        self.bs4_strainer = SoupStrainer(
             ["article", "main", "div", "h1", "h2", "h3", "p"],
             class_=["post-content", "content", "main-content", "entry-content"],
         )

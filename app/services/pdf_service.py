@@ -3,7 +3,6 @@ import tempfile
 from typing import List
 
 import pymupdf4llm
-from langchain_core.documents import Document
 from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
@@ -47,7 +46,19 @@ class PDFService:
 
         try:
             # 1. Extract text as Markdown
-            md_text = pymupdf4llm.to_markdown(tmp_path)
+            md_output = pymupdf4llm.to_markdown(tmp_path)
+
+            # Ensure we have a string (pymupdf4llm can return list of dicts)
+            if isinstance(md_output, list):
+                md_text = "\n\n".join(
+                    [
+                        str(page.get("text", ""))
+                        for page in md_output
+                        if isinstance(page, dict)
+                    ]
+                )
+            else:
+                md_text = str(md_output) if md_output else ""
 
             if not md_text.strip():
                 raise ValueError("No text could be extracted from the PDF.")
