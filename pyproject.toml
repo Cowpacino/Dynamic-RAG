@@ -1,0 +1,20 @@
+[project]
+name = "minor-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "bs4>=0.0.2",
+    "ddgs>=9.10.0",
+    "dotenv>=0.9.9",
+    "duckduckgo-search>=8.1.1",
+    "fastapi>=0.129.0",
+    "langchain>=1.0.5",
+    "langchain-chroma>=1.0.0",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.0.2",
+    "langchain-text-splitters>=1.0.0",
+    "pymupdf4llm>=0.0.9",
+    "python-multipart>=0.0.22",
+]
