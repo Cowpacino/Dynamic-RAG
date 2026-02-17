@@ -31,7 +31,12 @@ rag-agent/app/
 
 1.  **Install Dependencies**:
     ```bash
-    pip install fastapi uvicorn langchain-openai langchain-chroma pymupdf4llm duckduckgo-search langgraph bs4 python-multipart
+    <!-- pip install fastapi uvicorn langchain-openai langchain-chroma pymupdf4llm duckduckgo-search langgraph bs4 python-multipart -->
+
+    pip install uv
+    uv sync
+    .venv/Scripts/activate
+    
     ```
 
 2.  **Environment Variables**:
