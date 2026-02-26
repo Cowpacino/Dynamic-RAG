@@ -17,4 +17,6 @@ dependencies = [
     "langchain-text-splitters>=1.0.0",
     "pymupdf4llm>=0.0.9",
     "python-multipart>=0.0.22",
+    "selenium>=4.41.0",
+    "unstructured>=0.21.2",
 ]

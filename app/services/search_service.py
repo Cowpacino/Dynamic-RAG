@@ -1,7 +1,5 @@
 from typing import List
-
-from bs4.filter import SoupStrainer
-from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import SeleniumURLLoader
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -20,11 +18,7 @@ class SearchService:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000, chunk_overlap=100
         )
-        # Strainer to filter common clutter from webpages
-        self.bs4_strainer = SoupStrainer(
-            ["article", "main", "div", "h1", "h2", "h3", "p"],
-            class_=["post-content", "content", "main-content", "entry-content"],
-        )
+        
 
     async def search_internet(self, query: str) -> str:
         """
@@ -41,28 +35,16 @@ class SearchService:
         Fetches the content of a specific URL and parses it into LangChain Documents.
         """
         try:
-            loader = WebBaseLoader(
-                web_paths=(url,),
-                bs_kwargs={"parse_only": self.bs4_strainer},
-                requests_kwargs={"headers": {"User-Agent": settings.USER_AGENT}},
+            loader = SeleniumURLLoader(
+            urls =[url],
+            headless=True,
+            browser="chrome"
             )
 
             docs = loader.load()
-
-            # Fallback if the strainer was too aggressive and returned nothing
-            has_content = any(
-                doc.page_content and doc.page_content.strip() for doc in docs
-            )
-            if not has_content:
-                loader = WebBaseLoader(
-                    web_paths=(url,),
-                    requests_kwargs={"headers": {"User-Agent": settings.USER_AGENT}},
-                )
-                docs = loader.load()
-
+            
             # Split content into manageable chunks
             split_docs = self.text_splitter.split_documents(docs)
-
             # Add metadata
             for doc in split_docs:
                 doc.metadata["source"] = url
