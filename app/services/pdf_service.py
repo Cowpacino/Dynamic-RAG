@@ -26,8 +26,8 @@ class PDFService:
         ]
         # Secondary splitter to ensure chunks are within LLM context window limits
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=100,
+            chunk_size=400,
+            chunk_overlap=50,
             separators=["\n\n", "\n", ".", " ", ""],
         )
 

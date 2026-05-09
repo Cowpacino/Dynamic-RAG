@@ -15,8 +15,13 @@ dependencies = [
     "langchain-community>=0.4.1",
     "langchain-openai>=1.0.2",
     "langchain-text-splitters>=1.0.0",
+    "opencv-python>=4.13.0.92",
     "pymupdf4llm>=0.0.9",
     "python-multipart>=0.0.22",
     "selenium>=4.41.0",
     "unstructured>=0.21.2",
+    "open-clip-torch",
+    "torch",
+    "torchvision",
+    "langchain-ollama>=1.1.0",
 ]

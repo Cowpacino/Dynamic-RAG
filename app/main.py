@@ -1,7 +1,8 @@
 from typing import List
-
+import tempfile
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile,BackgroundTasks
+import aiofiles
 
 from app.core.config import settings
 from app.core.vector_store import vector_store_manager
@@ -14,6 +15,10 @@ from app.models.schemas import (
 from app.services.agent_service import agent_service
 from app.services.pdf_service import pdf_service
 from app.services.search_service import search_service
+from app.services.cleanup_temp import process_video_heavy_lifting,cleanup_temporary_file
+
+
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -89,6 +94,41 @@ async def index_url(request: IndexUrlRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/index/video")
+async def upload_video(
+    background_tasks: BackgroundTasks, 
+    file: UploadFile = File(...)
+):
+    # 1. Validate the file type
+    if not file.content_type.startswith("video/"):
+        return {"error": "Invalid file type. Please upload a video."}
+
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}")
+    tmp_file_path = tmp_file.name
+
+    try:
+        # 2. Async chunked writing for large files
+        # This prevents the server from freezing while saving a 500MB video
+        async with aiofiles.open(tmp_file_path, 'wb') as out_file:
+            # Read in 1MB chunks
+            while content := await file.read(1024 * 1024):  
+                await out_file.write(content)
+
+        # 3. Schedule the heavy processing as a background task
+        # Do NOT await the heavy processing here, or the request will time out
+        background_tasks.add_task(process_video_heavy_lifting, tmp_file_path)
+        
+        # 4. Schedule cleanup to happen AFTER processing is done
+        background_tasks.add_task(cleanup_temporary_file, tmp_file_path)
+
+        return {
+            "filename": file.filename,
+            "status": "Video uploaded successfully and is now processing in the background."
+        }
+
+    except Exception as e:
+        background_tasks.add_task(cleanup_temporary_file, tmp_file_path)
+        return HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
