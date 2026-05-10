@@ -1,80 +1,225 @@
-# Modular RAG Agent with FastAPI
+# 🤖 Multi-Modal RAG Agent
 
-This project is a highly modularized RAG (Retrieval-Augmented Generation) system built with FastAPI and LangGraph. It allows for dynamic ingestion of multiple PDFs, automated web parsing, and real-time internet searching.
+A modular, multi-modal Retrieval-Augmented Generation (RAG) system built with **FastAPI** and **LangGraph**. Supports ingestion and querying of PDFs, webpages, and videos through a ReAct agent with tool-use capabilities.
 
-## Key Features
+---
 
-- **Modular Architecture**: Separated into `core`, `services`, `models`, and `tools` for better maintainability.
-- **FastAPI Endpoints**:
-    - `POST /index/pdfs`: Upload and index multiple PDF files simultaneously.
-    - `POST /index/url`: Manually trigger indexing of a specific webpage.
-    - `POST /chat`: Interact with the AI agent.
-- **Automated Web Parsing**: Uses `pymupdf4llm` for PDFs (preserving Markdown structure) and `WebBaseLoader` with `BeautifulSoup` for clean web content extraction.
-- **Intelligent Agent (ReAct)**:
-    - Automatically searches the internet if local context is insufficient.
-    - Can visit specific URLs provided by the user or found during search.
-    - Manages its own "browsing" and "indexing" logic.
+## ✨ Features
 
-## Project Structure
+- **PDF Ingestion** — Upload multiple PDFs; content is extracted as Markdown (preserving structure) and indexed in ChromaDB.
+- **Webpage Indexing** — Fetch and index any public URL into the vector store for later retrieval.
+- **Video Understanding** — Upload videos; frames are extracted and embedded using OpenCLIP for visual similarity search.
+- **ReAct Agent** — A LangGraph-powered agent that intelligently chooses between:
+  - Local vector store retrieval (PDFs & web pages)
+  - Live internet search (DuckDuckGo)
+  - Direct webpage browsing (Selenium)
+  - Visual video frame retrieval (OpenCLIP + Vision LLM)
+- **Dual Embedding Strategy**
+  - Text: OpenAI embeddings for PDF/web content
+  - Visual: OpenCLIP (local) for video frames
+- **Background Video Processing** — Large video uploads are handled asynchronously without blocking the server.
 
-```text
-rag-agent/app/
-├── api/            # Future API route versioning
-├── core/           # Configuration and Vector Store initialization
-├── models/         # Pydantic schemas for request/response
-├── services/       # Business logic (PDF processing, Web searching, Agent management)
-├── tools/          # LangChain tools for the agent
-└── main.py         # FastAPI application entry point
+---
+
+## 🏗️ Project Structure
+
+```
+DYNAMIC-RAG/
+├── app/
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   └── vector_store.py
+│   ├── models/
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── agent_service.py
+│   │   ├── cleanup_temp.py
+│   │   ├── frame_extraction.py
+│   │   ├── pdf_service.py
+│   │   └── search_service.py
+│   ├── tools/
+│   │   ├── __init__.py
+│   │   ├── browse_tool.py
+│   │   ├── retrieval_tool.py
+│   │   ├── video_retrieval_tool.py
+│   │   └── web_search_tool.py
+│   ├── __init__.py
+│   └── main.py
+├── chroma_db/
+├── extracted_frames/
+├── .env
+├── .gitignore
+├── .python-version
+├── document.pdf
+├── pyproject.toml
+├── README.md
+└── uv.lock
 ```
 
-## Setup
+---
 
-1.  **Install Dependencies**:
-    ```bash
-    <!-- pip install fastapi uvicorn langchain-openai langchain-chroma pymupdf4llm duckduckgo-search langgraph bs4 python-multipart -->
+## ⚙️ Setup
 
-    pip install uv
-    uv sync
-    .venv/Scripts/activate
-    
-    ```
+### 1. Prerequisites
 
-2.  **Environment Variables**:
-    Create a `.env` file in the root directory:
-    ```env
-    OPENAI_API_KEY=your_openai_key
-    USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64)
-    CHROMA_DB_DIR=./chroma_db
-    COLLECTION_NAME=modular_rag
-    MODEL_NAME=gpt-4o-mini
-    ```
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv) package manager
+- Google Chrome (for Selenium-based web browsing)
+- [Ollama](https://ollama.com/) running locally (for local LLM inference)
 
-3.  **Run the Server**:
-    ```bash
-    python -m app.main
-    ```
+### 2. Install Dependencies
 
-## Usage Examples
-
-### 1. Uploading PDFs
-Use an API client like Postman or `curl` to send multiple files:
 ```bash
-curl -X POST "http://localhost:8000/index/pdfs" -F "files=@doc1.pdf" -F "files=@doc2.pdf"
+pip install uv
+uv sync
 ```
 
-### 2. Chatting with the Agent
-The agent will decide whether to use local documents or the web:
+Activate the virtual environment:
+
+```bash
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+### 3. Pull Ollama Models
+
+```bash
+ollama pull qwen2.5:3b       # Text agent
+ollama pull qwen3-vl:2b      # Vision-language model (video queries)
+```
+
+### 4. Configure Environment
+
+Create a `.env` file in the project root:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+
+# Optional — defaults shown
+USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+CHROMA_DB_DIR=./chroma_db
+COLLECTION_NAME=modular_rag
+MODEL_NAME=gpt-4o-mini
+```
+
+> **Note:** `OPENAI_API_KEY` is required for text/PDF embedding. The agent LLM itself runs locally via Ollama.
+
+---
+
+## 🚀 Running the Server
+
+```bash
+python -m app.main
+```
+
+The API will be available at `http://localhost:8000`.
+
+Interactive docs: `http://localhost:8000/docs`
+
+---
+
+## 📡 API Endpoints
+
+### `POST /chat`
+Send a message to the agent. It will automatically choose the best tool (local retrieval, web search, browsing, or video frames).
+
 ```bash
 curl -X POST "http://localhost:8000/chat" \
      -H "Content-Type: application/json" \
      -d '{"message": "What does the uploaded PDF say about the project timeline?"}'
 ```
 
-### 3. Automated Web Access
-Ask the agent to look at a specific site:
 ```json
 {
-  "message": "Can you check https://example.com and summarize their latest news?"
+  "message": "Your question here",
+  "thread_id": "optional-session-id"
 }
 ```
-The agent will use the `browse_webpage` tool, parse the HTML automatically, and provide a summary.
+
+---
+
+### `POST /index/pdfs`
+Upload and index one or more PDF files.
+
+```bash
+curl -X POST "http://localhost:8000/index/pdfs" \
+     -F "files=@doc1.pdf" \
+     -F "files=@doc2.pdf"
+```
+
+---
+
+### `POST /index/url`
+Fetch and index a webpage URL.
+
+```bash
+curl -X POST "http://localhost:8000/index/url" \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://example.com/article"}'
+```
+
+---
+
+### `POST /index/video`
+Upload a video file. Frames are extracted and indexed in the background — the endpoint returns immediately.
+
+```bash
+curl -X POST "http://localhost:8000/index/video" \
+     -F "file=@my_video.mp4"
+```
+
+Video queries are automatically routed to the vision-language model when the message contains keywords like `video`, `frame`, `clip`, `scene`, or `timestamp`.
+
+---
+
+## 🧠 How It Works
+
+```
+User Query
+    │
+    ▼
+AgentService.chat()
+    │
+    ├─ Contains video keywords? ──► OpenCLIP frame retrieval → VLM (qwen3-vl)
+    │
+    └─ Otherwise ────────────────► LangGraph ReAct Agent (qwen2.5)
+                                        │
+                                        ├─ retrieve_from_vector_store  (PDFs / web)
+                                        ├─ search_the_internet          (DuckDuckGo)
+                                        ├─ browse_webpage               (Selenium)
+                                        └─ retrieve_video_content       (OpenCLIP)
+```
+
+**PDF pipeline:** `pymupdf4llm` → Markdown → `MarkdownHeaderTextSplitter` → `RecursiveCharacterTextSplitter` → OpenAI embeddings → ChromaDB
+
+**Video pipeline:** `OpenCV` frame extraction (0.5 fps default) → OpenCLIP visual embeddings → ChromaDB (`pure_visual_frames` collection)
+
+---
+
+## 📦 Key Dependencies
+
+| Package | Purpose |
+|---|---|
+| `fastapi` | Web framework |
+| `langgraph` | ReAct agent orchestration |
+| `langchain-chroma` | Vector store integration |
+| `langchain-openai` | OpenAI text embeddings |
+| `langchain-ollama` | Local LLM inference |
+| `pymupdf4llm` | PDF → Markdown extraction |
+| `open-clip-torch` | Visual embeddings for video frames |
+| `opencv-python` | Video frame extraction |
+| `selenium` | Headless web browsing |
+| `duckduckgo-search` | Internet search |
+
+---
+
+## 🗒️ Notes
+
+- Video processing runs in the background; large files may take time to index. Query video content after processing completes.
+- The `extracted_frames/` directory stores frame images locally — ensure sufficient disk space for long videos.
+- ChromaDB persists to `./chroma_db` by default; delete this folder to reset the knowledge base.
+- Consecutive `ws1` in combos require precise timing — just kidding, wrong README.
